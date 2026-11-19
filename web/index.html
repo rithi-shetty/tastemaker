@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tastemaker</title>
+<meta name="description" content="Tastemaker: a discovery feed that learns what each user likes without wearing them out. Interactive simulation.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F7F7FB; --surface:#FFFFFF; --ink:#111827; --muted:#6B7280; --line:#E5E7EB; --soft:#F3F4F6;
+  --brand:#7C3AED; --brand-soft:#EDE9FE; --bad:#DC2626; --bad-soft:#FEE2E2; --good:#059669; --good-soft:#D1FAE5;
+  --greedy:#DC2626; --thompson:#2563EB; --tastemaker:#7C3AED; --popular:#6B7280;
+  --shadow:0 1px 2px rgba(17,24,39,.05),0 6px 20px rgba(17,24,39,.06); color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0B0B12; --surface:#15151F; --ink:#F3F4F6; --muted:#9CA3AF; --line:#272735; --soft:#1D1D29;
+  --brand:#A78BFA; --brand-soft:#2A2145; --bad:#F87171; --bad-soft:#3B1717; --good:#34D399; --good-soft:#0F2E24;
+  --greedy:#F87171; --thompson:#60A5FA; --tastemaker:#A78BFA; --popular:#9CA3AF;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.3); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0B0B12; --surface:#15151F; --ink:#F3F4F6; --muted:#9CA3AF; --line:#272735; --soft:#1D1D29;
+  --brand:#A78BFA; --brand-soft:#2A2145; --bad:#F87171; --bad-soft:#3B1717; --good:#34D399; --good-soft:#0F2E24;
+  --greedy:#F87171; --thompson:#60A5FA; --tastemaker:#A78BFA; --popular:#9CA3AF;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.3); color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-variant-numeric:tabular-nums}
+a{color:var(--brand)}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+header.top{background:var(--surface);border-bottom:1px solid var(--line)}
+header.top .wrap{display:flex;align-items:center;gap:12px;padding:14px 20px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;margin-right:auto}
+.logo i{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#7C3AED,#EC4899);display:inline-block}
+.pill{border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600;background:#FEF3C7;color:#92400E}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}
+.hero{padding:40px 0 18px}
+.hero h1{font-size:34px;line-height:1.15;margin:0 0 10px;letter-spacing:-.02em;max-width:820px}
+.hero p{color:var(--muted);font-size:17px;max-width:760px;margin:0}
+section{padding:22px 0}
+h2{font-size:22px;margin:0 0 6px;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:0 0 18px;max-width:780px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:20px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.kpi .l{color:var(--muted);font-size:13px}.kpi .v{font-size:28px;font-weight:700;margin-top:2px}.kpi .d{font-size:13px;color:var(--muted)}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.tab{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 14px;font:inherit;font-size:14px;cursor:pointer}
+.tab[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.likes{font-size:14px;color:var(--muted);margin:-4px 0 14px}
+.likes b{color:var(--ink)}
+.duel{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.col h3{margin:0 0 2px;font-size:16px;display:flex;align-items:center;gap:8px}
+.col h3 .dot{width:10px;height:10px;border-radius:50%}
+.col .stat{font-size:13px;color:var(--muted);margin-bottom:10px;min-height:20px}
+.days{display:flex;flex-direction:column;gap:4px}
+.day{display:grid;grid-template-columns:44px repeat(6,1fr) 60px;gap:4px;align-items:center}
+.day .dl{font-size:11.5px;color:var(--muted)}
+.tile{aspect-ratio:1;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;position:relative;opacity:.5;border:2px solid transparent}
+.tile.t{opacity:1;border-color:var(--ink)}
+.tile .mark{position:absolute;right:-4px;top:-6px;font-size:10px;background:var(--surface);border-radius:50%;width:15px;height:15px;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow)}
+.meter{height:6px;background:var(--soft);border-radius:4px;overflow:hidden}
+.meter span{display:block;height:100%;background:var(--bad);border-radius:4px}
+.off{grid-column:2/-1;background:var(--bad-soft);color:var(--bad);font-weight:600;font-size:13px;border-radius:7px;padding:6px 10px;text-align:center}
+.gone{grid-column:2/-1;height:4px;border-radius:2px;background:var(--soft)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:12px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-size:12.5px;color:var(--muted);font-weight:600}
+td.n,th.n{text-align:right}
+tr.hl td{background:var(--brand-soft)}
+.tw{overflow-x:auto}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+svg text{fill:var(--muted);font-size:11px}
+.callout{border-left:4px solid var(--brand);background:var(--brand-soft);border-radius:10px;padding:12px 14px;margin-top:14px;font-size:14.5px}
+.win{font-weight:700}
+.dial{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+input[type=range]{width:280px;accent-color:var(--brand)}
+.badge{display:inline-block;border-radius:6px;padding:2px 8px;font-size:12px;font-weight:600}
+.b-good{background:var(--good-soft);color:var(--good)}.b-bad{background:var(--bad-soft);color:var(--bad)}.b-mid{background:var(--soft);color:var(--muted)}
+footer{color:var(--muted);font-size:13px;padding:30px 0 50px}
+@media (max-width:860px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.duel,.grid2{grid-template-columns:1fr}.hero h1{font-size:27px}input[type=range]{width:100%}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <div class="logo"><i></i>Tastemaker</div>
+  <span class="pill" title="Users and their behaviour are simulated">Simulated users</span>
+  <a class="btn" href="https://github.com/rithi-shetty/tastemaker">Source and case study ↗</a>
+  <button class="btn" id="theme" type="button">Theme</button>
+</div></header>
+
+<main class="wrap">
+  <div class="hero">
+    <h1>A discovery feed that learns what you like, without wearing you out.</h1>
+    <p>A click-maximising feed wins every short test, then quietly drives people to switch it off. This simulation shows why, and what a feed built for long-term value does differently.</p>
+  </div>
+
+  <section>
+    <div class="kpis" id="kpis"></div>
+  </section>
+
+  <section>
+    <h2>Same person, two feeds</h2>
+    <p class="sub">Four weeks of lock-screen cards for one simulated person. Each row is a day of six cards. Bright tiles were tapped; ★ means saved to shop later; ✕ means "not interested". The red bar is how annoyed they are, which no feed can see.</p>
+    <div class="tabs" id="personas" role="group" aria-label="Choose a person"></div>
+    <p class="likes" id="likes"></p>
+    <div class="duel card">
+      <div class="col" id="col-greedy"></div>
+      <div class="col" id="col-tastemaker"></div>
+    </div>
+    <div class="legend" id="catlegend"></div>
+  </section>
+
+  <section>
+    <h2>Six feeds, 3,000 people, 60 days</h2>
+    <p class="sub">The same simulated users under each policy, averaged over three runs.</p>
+    <div class="card tw"><table id="policies"></table></div>
+    <div class="grid2" style="margin-top:16px">
+      <div class="card"><b>Saves per user, cumulative</b><div id="ch-saves"></div></div>
+      <div class="card"><b>Users who still have the feed on</b><div id="ch-active"></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>A short test picks the wrong winner</h2>
+    <p class="sub">What an A/B test would conclude, depending on how long it runs.</p>
+    <div class="card tw"><table id="tests"></table></div>
+    <div class="callout" id="tests-take"></div>
+  </section>
+
+  <section>
+    <h2>The diversity dial</h2>
+    <p class="sub">Tastemaker penalises showing the same category over and over. Move the dial to see what the penalty buys and what it costs.</p>
+    <div class="card">
+      <div class="dial"><label for="dial"><b>Diversity penalty</b></label><input type="range" id="dial" min="0" step="1"><span id="dial-v" class="win"></span></div>
+      <div class="kpis" id="dial-kpis"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Where it does not help</h2>
+    <p class="sub">The whole simulation re-run in worlds that break one assumption at a time.</p>
+    <div class="card tw"><table id="stress"></table></div>
+  </section>
+
+  <footer>Built by Rithika U Shetty. All users and behaviour are simulated; see the <a href="https://github.com/rithi-shetty/tastemaker">repository</a> for assumptions, method and limitations.</footer>
+</main>
+
+<script src="data.js"></script>
+<script>
+const R = DATA.results, J = DATA.journeys, CAT = DATA.categories, LAB = R.meta.labels;
+const T = R.compare.table, C = R.compare.curves;
+const pct = (x, d = 0) => (x * 100).toFixed(d) + '%';
+const num = (x, d = 1) => x.toFixed(d);
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+/* KPIs */
+const g = T.greedy, t = T.tastemaker;
+document.getElementById('kpis').innerHTML = [
+  ['Saves per user, 60 days', num(t.saves_per_user.mean), `vs ${num(g.saves_per_user.mean)} for the click-maximiser (+${pct(t.saves_per_user.mean / g.saves_per_user.mean - 1)})`],
+  ['Feed still on at day 60', pct(t.retention_end.mean), `vs ${pct(g.retention_end.mean)} for the click-maximiser`],
+  ['Tap rate', pct(t.ctr.mean, 1), `vs ${pct(g.ctr.mean, 1)}: taps cannot see the difference`],
+  ['Week-1 saves', num(t.saves_week1_per_user.mean, 2), `vs ${num(g.saves_week1_per_user.mean, 2)}: the click-maximiser wins week 1`]
+].map(([l, v, d]) => `<div class="card kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join('');
+
+/* Journeys */
+const names = Object.keys(J.personas);
+let current = names[0];
+document.getElementById('personas').innerHTML = names.map(n => `<button class="tab" type="button" data-p="${n}">${n}</button>`).join('');
+document.getElementById('catlegend').innerHTML = CAT.map(c => `<span>${c.emoji} ${c.name}</span>`).join('');
+function column(policy){
+  const P = J.personas[current], ev = P[policy], per = J.cards_per_day;
+  const days = []; let offDay = null;
+  ev.forEach(e => { if (e.off) { offDay = e.d; return; } (days[e.d] = days[e.d] || []).push(e); });
+  const taps = ev.filter(e => e.t).length, saves = ev.filter(e => e.v).length;
+  let rows = '';
+  for (let d = 0; d < J.days; d++){
+    const cards = days[d];
+    if (!cards){ rows += `<div class="day"><span class="dl">Day ${d + 1}</span><div class="gone"></div></div>`; continue; }
+    const a = cards[cards.length - 1].a;
+    rows += `<div class="day"><span class="dl">Day ${d + 1}</span>` + cards.map(e => { const c = CAT[e.c];
+      return `<div class="tile ${e.t ? 't' : ''}" style="background:${c.color}22;${e.t ? 'border-color:' + c.color : ''}" title="${c.name}${e.t ? ', tapped' : ''}${e.v ? ', saved' : ''}${e.x ? ', not interested' : ''}">${c.emoji}${e.v ? '<span class="mark">★</span>' : e.x ? '<span class="mark">✕</span>' : ''}</div>`; }).join('') +
+      '<div class="tile" style="visibility:hidden"></div>'.repeat(per - cards.length) +
+      `<div class="meter" title="Annoyance ${a.toFixed(2)}"><span style="width:${Math.min(100, a / 1.5 * 100)}%"></span></div></div>`;
+    if (offDay === d) rows += `<div class="day"><span></span><div class="off">Switched the feed off after day ${d + 1}</div></div>`;
+  }
+  const colr = policy === 'greedy' ? 'var(--greedy)' : 'var(--tastemaker)';
+  return `<h3><span class="dot" style="background:${colr}"></span>${LAB[policy]}</h3><div class="stat">${taps} taps, ${saves} saves${offDay !== null ? `, <b style="color:var(--bad)">gone after day ${offDay + 1}</b>` : ', still using the feed'}</div><div class="days">${rows}</div>`;
+}
+function renderJourney(){
+  document.querySelectorAll('#personas .tab').forEach(b => b.setAttribute('aria-pressed', b.dataset.p === current));
+  const P = J.personas[current], o = P.outcomes, first = current.split(':')[0];
+  document.getElementById('likes').innerHTML = 'Secretly likes: <b>' + P.likes.join(', ') + '</b>. Neither feed knows this.<br>' +
+    `Over four weeks, <b>${pct(o.greedy_off_tastemaker_on)}</b> of the ${P.group_size.toLocaleString('en-IN')} simulated people like ${first} leave the click-maximiser but stay with Tastemaker, and ${pct(o.tastemaker_off_greedy_on)} do the reverse. The rest end up the same either way. ${first} is a typical example of the most common difference.`;
+  document.getElementById('col-greedy').innerHTML = column('greedy');
+  document.getElementById('col-tastemaker').innerHTML = column('tastemaker');
+}
+document.getElementById('personas').addEventListener('click', e => { const b = e.target.closest('[data-p]'); if (b){ current = b.dataset.p; renderJourney(); } });
+
+/* Policy table */
+const order = ['random', 'popular', 'greedy', 'epsilon', 'thompson', 'tastemaker'];
+document.getElementById('policies').innerHTML = '<thead><tr><th>Policy</th><th class="n">Tap rate</th><th class="n">Week-1 saves</th><th class="n">Saves, 60 days</th><th class="n">On at day 30</th><th class="n">On at day 60</th><th class="n">Category variety</th></tr></thead><tbody>' +
+  order.map(n => { const m = T[n]; return `<tr class="${n === 'tastemaker' ? 'hl' : ''}"><td><b>${LAB[n]}</b></td><td class="n">${pct(m.ctr.mean, 1)}</td><td class="n">${num(m.saves_week1_per_user.mean, 2)}</td><td class="n">${num(m.saves_per_user.mean)}</td><td class="n">${pct(m.retention_d30.mean)}</td><td class="n">${pct(m.retention_end.mean)}</td><td class="n">${pct(m.category_entropy.mean)}</td></tr>`; }).join('') + '</tbody>';
+
+/* Line charts */
+function lines(el, key, scale, fmt){
+  const W = 520, H = 230, x0 = 40, x1 = 510, y0 = 200, y1 = 12, show = ['popular', 'greedy', 'thompson', 'tastemaker'];
+  const all = show.flatMap(n => C[n][key].map(v => v * scale)), mx = Math.max(...all) * 1.05, n = C.greedy[key].length;
+  const X = i => x0 + i / (n - 1) * (x1 - x0), Y = v => y0 - v / mx * (y0 - y1);
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${key} by day">`;
+  for (let k = 0; k <= 4; k++){ const v = mx * k / 4; s += `<line x1="${x0}" x2="${x1}" y1="${Y(v)}" y2="${Y(v)}" stroke="${css('--line')}"/><text x="${x0 - 6}" y="${Y(v) + 4}" text-anchor="end">${fmt(v)}</text>`; }
+  [1, 15, 30, 45, 60].forEach(d => s += `<text x="${X(d - 1)}" y="${y0 + 16}" text-anchor="middle">day ${d}</text>`);
+  show.forEach(p => { s += `<path d="${C[p][key].map((v, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v * scale).toFixed(1)).join('')}" fill="none" stroke="${css('--' + p)}" stroke-width="${p === 'greedy' || p === 'tastemaker' ? 2.6 : 1.5}"/>`; });
+  s += '</svg><div class="legend">' + show.map(p => `<span><b style="color:${css('--' + p)}">━</b> ${LAB[p]}</span>`).join('') + '</div>';
+  document.getElementById(el).innerHTML = s;
+}
+
+/* Test length */
+const SV = R.short_vs_long;
+document.getElementById('tests').innerHTML = '<thead><tr><th>Test length</th><th>Winner on saves</th><th class="n">Greedy</th><th class="n">Thompson</th><th class="n">Tastemaker</th><th>Right call?</th></tr></thead><tbody>' +
+  Object.entries(SV.tests).map(([k, v]) => `<tr><td><b>${k}</b></td><td>${LAB[v.winner_saves]}</td>${['greedy', 'thompson', 'tastemaker'].map(n => `<td class="n">${num(v.saves[n])} saves<br><span style="color:var(--muted);font-size:12px">${pct(v.active[n])} still on</span></td>`).join('')}<td>${v.winner_saves === 'tastemaker' ? '<span class="badge b-good">Yes</span>' : '<span class="badge b-bad">No</span>'}</td></tr>`).join('') + '</tbody>';
+document.getElementById('tests-take').innerHTML = `<b>Takeaway:</b> the click-maximiser leads on cumulative saves until day ${SV.overtake_day}, so a 1-, 2- or 4-week test would ship it. By day 60 it has lost most of its users. Judge feeds on retained, engaged users, and keep a long-running holdout.`;
+
+/* Dial */
+const D = R.diversity_dial, dial = document.getElementById('dial');
+dial.max = D.length - 1; dial.value = D.findIndex(d => d.penalty === 0.25);
+function renderDial(){
+  const d = D[+dial.value], z = D[0];
+  document.getElementById('dial-v').textContent = d.penalty === 0 ? 'off' : d.penalty;
+  const delta = (a, b, f) => `${a >= b ? '+' : '−'}${f(Math.abs(a - b))} vs off`;
+  document.getElementById('dial-kpis').innerHTML = [
+    ['Feed still on at day 60', pct(d.retention_end), delta(d.retention_end, z.retention_end, x => (x * 100).toFixed(0) + ' pts')],
+    ['Saves per user', num(d.saves_per_user), delta(d.saves_per_user, z.saves_per_user, x => x.toFixed(1))],
+    ['Tap rate', pct(d.ctr, 1), delta(d.ctr, z.ctr, x => (x * 100).toFixed(1) + ' pts')],
+    ['Category variety', pct(d.category_entropy), delta(d.category_entropy, z.category_entropy, x => (x * 100).toFixed(0) + ' pts')]
+  ].map(([l, v, s]) => `<div class="card kpi" style="box-shadow:none"><div class="l">${l}</div><div class="v">${v}</div><div class="d">${s}</div></div>`).join('');
+}
+dial.addEventListener('input', renderDial);
+
+/* Stress */
+const verdict = s => { const a = s.tastemaker.saves_per_user, b = s.greedy.saves_per_user, r = s.tastemaker.retention_end - s.greedy.retention_end;
+  if (a > b * 1.05 && r > 0) return '<span class="badge b-good">Tastemaker wins</span>';
+  if (a < b * 0.95 && r < 0) return '<span class="badge b-bad">Click-maximiser wins</span>';
+  return '<span class="badge b-mid">Trade-off</span>'; };
+document.getElementById('stress').innerHTML = '<thead><tr><th>World</th><th class="n">Saves: Greedy</th><th class="n">Saves: Tastemaker</th><th class="n">On at day 60: Greedy</th><th class="n">On at day 60: Tastemaker</th><th>Verdict</th></tr></thead><tbody>' +
+  R.stress.map(s => `<tr><td><b>${s.label}</b></td><td class="n">${num(s.greedy.saves_per_user)}</td><td class="n">${num(s.tastemaker.saves_per_user)}</td><td class="n">${pct(s.greedy.retention_end)}</td><td class="n">${pct(s.tastemaker.retention_end)}</td><td>${verdict(s)}</td></tr>`).join('') + '</tbody>';
+
+function drawCharts(){ lines('ch-saves', 'cum_saves', 1, v => v.toFixed(0)); lines('ch-active', 'active', 100, v => v.toFixed(0) + '%'); }
+document.getElementById('theme').addEventListener('click', () => {
+  const r = document.documentElement, cur = r.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  r.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark'); drawCharts();
+});
+renderJourney(); drawCharts(); renderDial();
+</script>
+</body>
+</html>
